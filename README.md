@@ -6,10 +6,12 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that e
 
 AI assistants without k8s-mcp can only suggest `kubectl` commands for you to copy-paste. With k8s-mcp, they can:
 
-- **Directly interact with your cluster** — list pods, read logs, check deployment status, and diagnose issues in real time
-- **React to live state** — see actual pod statuses, event logs, and resource details instead of guessing
+- **Query and diagnose in real time** — list pods, read logs, inspect events, and check deployment status without leaving the conversation
 - **Take actions on your behalf** — scale deployments, restart workloads, apply manifests, and delete resources (with your approval)
+- **Generate deployment manifests** — scaffold production-ready Kustomize manifests (ServiceAccount, RBAC, Deployment, Service) and apply them to the cluster in one step
 - **Chain operations intelligently** — e.g., notice a pod is crash-looping, pull its logs, check events, and suggest a fix — all in one conversation
+- **Work with any MCP client** — supports Claude Code, Codex CLI, Gemini CLI, Opencode, and any client that speaks stdio, HTTP, or SSE
+- **Secure by design** — reuses your existing `~/.kube/config`, which is authenticated through your organization's auth flow (e.g., SSO, OIDC, certificate). The server never stores, transmits, or manages credentials itself
 
 ## Prerequisites
 
