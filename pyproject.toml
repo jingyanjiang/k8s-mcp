@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "k8s-mcp"
+version = "0.1.0"
+description = "Kubernetes MCP server — expose kubectl operations as MCP tools"
+license = "MIT"
+packages = [{ include = "k8s_mcp", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+mcp = "^1.9"
+kubernetes = ">=31.0"
+pyyaml = "^6.0"
+
+[tool.poetry.scripts]
+k8s-mcp = "k8s_mcp.server:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

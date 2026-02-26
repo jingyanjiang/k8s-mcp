@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "k8s": {
+      "type": "stdio",
+      "command": "poetry",
+      "args": ["run", "k8s-mcp", "--transport", "stdio"],
+      "cwd": "/path/to/k8s-mcp"
+    }
+  }
+}
