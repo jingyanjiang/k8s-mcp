@@ -14,7 +14,7 @@ AI assistants without k8s-mcp can only suggest `kubectl` commands for you to cop
 ## Prerequisites
 
 - **Python 3.10+**
-- **Poetry** (for dependency management)
+- **Poetry**, **uv**, or **pip** (for dependency management)
 - **kubectl access configured** — the server reads your `~/.kube/config` automatically
 
 ### Kubeconfig setup
@@ -34,9 +34,24 @@ The server inherits whatever permissions your kubeconfig user has. No additional
 ## Installation
 
 ```bash
-git clone <repo-url>
+git clone git@github.com:jingyanjiang/k8s-mcp.git
 cd k8s-mcp
+
+# Create a virtual environment (or activate your own)
+conda create -n k8s-mcp python=3.10 -y && conda activate k8s-mcp
+```
+
+Install with your preferred package manager:
+
+```bash
+# Option 1: Poetry (recommended)
 poetry install
+
+# Option 2: uv
+uv pip install -e .
+
+# Option 3: pip
+pip install -e .
 ```
 
 ## Configuration
@@ -107,6 +122,8 @@ Add to `opencode.json` in your project root:
 ```
 
 > **Note:** Opencode combines the executable and arguments into a single `command` array and does not support a `cwd` field. Run `opencode` from the k8s-mcp directory, or use an absolute path to the poetry binary.
+
+> **Tip:** If you installed with `uv` or `pip` instead of Poetry, replace `poetry run k8s-mcp` with just `k8s-mcp` in all configurations above (the command is installed into your environment's PATH).
 
 For all stdio configurations above, the server starts automatically when your MCP client connects — no manual commands needed.
 
