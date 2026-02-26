@@ -31,6 +31,8 @@ kubectl get all -n <your-namespace>
 
 The server inherits whatever permissions your kubeconfig user has. No additional credentials are needed.
 
+> **Note:** Some operations (e.g., `list_namespaces`, `list_nodes`) require cluster-wide permissions that your user may not have. If a request fails with a `403 Forbidden` error, ask your cluster admin to grant the necessary RBAC roles.
+
 ## Installation
 
 ```bash
