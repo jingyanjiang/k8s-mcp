@@ -6,11 +6,13 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that e
 
 AI assistants without k8s-mcp can only suggest `kubectl` commands for you to copy-paste. With k8s-mcp, they can:
 
+- **Faster and lighter than shell tools** — native MCP tools return structured data directly to the AI, avoiding shell spawning, CLI output parsing, and large text streaming. This means faster responses, lower token usage, and a more hands-off experience compared to agents running `kubectl` via shell
 - **Secure by design** — reuses your existing `~/.kube/config`, which is authenticated through your organization's auth flow (e.g., SSO, OIDC, certificate). The server never stores, transmits, or manages credentials itself
-- **Query and diagnose in real time** — list pods, read logs, inspect events, and check deployment status without leaving the conversation
-- **Take actions on your behalf** — scale deployments, restart workloads, apply manifests, and delete resources (with your approval)
+- **Diagnose issues in one shot** — `diagnose_pod` combines status, conditions, events, and logs from failing containers into a single report. No more juggling `describe` and `logs` separately
+- **Query, manage, and take action** — list pods, read logs, inspect configs, scale deployments, restart workloads, apply manifests, and delete resources — all within the conversation, with your approval for destructive operations
+- **Autonomous deploy loops** — apply manifests, poll with `wait_for_ready` until pods are healthy, and iterate on failures — all without manual intervention
 - **Generate deployment manifests** — scaffold production-ready Kustomize manifests (ServiceAccount, RBAC, Deployment, Service) and apply them to the cluster in one step
-- **Chain operations intelligently** — e.g., notice a pod is crash-looping, pull its logs, check events, and suggest a fix — all in one conversation
+- **Detect config drift** — export live resources as YAML with `get_resource_yaml` and compare against local manifests
 - **Work with any MCP client** — supports Claude Code, Codex CLI, Gemini CLI, Opencode, and any client that speaks stdio, HTTP, or SSE
 
 ## Prerequisites
@@ -185,6 +187,8 @@ All operations are exposed as MCP tools — you interact with them conversationa
 | `get_pod` | Get detailed pod information |
 | `get_pod_logs` | Fetch container logs (with tail, previous container support) |
 | `delete_pod` | Delete a pod (with configurable grace period) |
+| `diagnose_pod` | One-shot diagnostics — combines status, conditions, events, and logs from failing containers |
+| `exec_command` | Execute a command inside a running container (e.g., `curl`, `env`, `nslookup`) |
 
 ### Deployments
 | Tool | Description |
@@ -193,12 +197,39 @@ All operations are exposed as MCP tools — you interact with them conversationa
 | `get_deployment` | Get detailed deployment information |
 | `scale_deployment` | Scale a deployment to N replicas |
 | `restart_deployment` | Rolling restart (equivalent to `kubectl rollout restart`) |
+| `get_rollout_status` | Check if a rollout is complete, in progress, or stuck |
 
 ### Services
 | Tool | Description |
 |------|-------------|
 | `list_services` | List services (by namespace, label, or all namespaces) |
 | `get_service` | Get detailed service information |
+
+### ConfigMaps
+| Tool | Description |
+|------|-------------|
+| `list_configmaps` | List ConfigMaps (by namespace, label, or all namespaces) |
+| `get_configmap` | Get a ConfigMap's metadata and data contents |
+
+### Secrets
+| Tool | Description |
+|------|-------------|
+| `list_secrets` | List Secrets with type and key counts |
+| `get_secret` | Get Secret metadata and key names; optionally decode values with masking |
+
+### ServiceAccounts
+| Tool | Description |
+|------|-------------|
+| `list_service_accounts` | List ServiceAccounts (by namespace, label, or all namespaces) |
+| `get_service_account` | Get ServiceAccount details including secrets and automount config |
+
+### RBAC (Roles & Bindings)
+| Tool | Description |
+|------|-------------|
+| `list_roles` | List Roles (by namespace or all); optionally include ClusterRoles |
+| `get_role` | Get Role or ClusterRole details including permission rules |
+| `list_role_bindings` | List RoleBindings (by namespace or all); optionally include ClusterRoleBindings |
+| `get_role_binding` | Get RoleBinding or ClusterRoleBinding details including subjects and role reference |
 
 ### Nodes
 | Tool | Description |
@@ -216,11 +247,31 @@ All operations are exposed as MCP tools — you interact with them conversationa
 |------|-------------|
 | `list_jobs` | List jobs with completion status and duration |
 
+### Ingresses
+| Tool | Description |
+|------|-------------|
+| `list_ingresses` | List Ingresses with hosts, class, and TLS info |
+| `get_ingress` | Get detailed Ingress information including routing rules |
+
 ### Generic Operations
 | Tool | Description |
 |------|-------------|
 | `apply_manifest` | Apply YAML manifests (create or update, supports multi-document) |
+| `apply_kustomize` | Render and apply a Kustomize directory (equivalent to `kubectl apply -k`) |
 | `delete_resource` | Delete any resource by type and name (supports abbreviations like `po`, `svc`, `deploy`) |
+| `describe_resource` | Describe any resource — combines spec/status with related events (like `kubectl describe`) |
+| `get_resource_yaml` | Export a live resource as clean YAML (for config drift detection) |
+
+### Resource Metrics
+| Tool | Description |
+|------|-------------|
+| `top_pods` | Show CPU/memory usage per pod (requires metrics-server) |
+| `top_nodes` | Show CPU/memory usage per node with capacity percentages |
+
+### Readiness
+| Tool | Description |
+|------|-------------|
+| `wait_for_ready` | Poll a pod or deployment until ready or timeout (enables autonomous deploy loops) |
 
 ### Deployment Generation
 | Tool | Description |
