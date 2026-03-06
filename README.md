@@ -1,82 +1,97 @@
 # k8s-mcp
 
-A [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that exposes Kubernetes operations as tools for AI assistants. It lets AI agents like Claude directly query and manage your Kubernetes cluster through natural language.
+AI-native Kubernetes operations for agents and fast-moving teams.
 
-## Why use this?
+k8s-mcp is a lightweight [MCP](https://modelcontextprotocol.io/) server that lets AI assistants deploy, inspect, and operate Kubernetes workloads through high-level workflow tools instead of raw kubectl commands.
 
-AI assistants without k8s-mcp can only suggest `kubectl` commands for you to copy-paste. With k8s-mcp, they can:
+Works with **Claude Code** · **Codex CLI** · **Gemini CLI** · **Opencode** · and any MCP-compatible agent.
 
-- **Faster and lighter than shell tools** — native MCP tools return structured data directly to the AI, avoiding shell spawning, CLI output parsing, and large text streaming. This means faster responses, lower token usage, and a more hands-off experience compared to agents running `kubectl` via shell
-- **Secure by design** — reuses your existing `~/.kube/config`, which is authenticated through your organization's auth flow (e.g., SSO, OIDC, certificate). The server never stores, transmits, or manages credentials itself
-- **Diagnose issues in one shot** — `diagnose_pod` combines status, conditions, events, and logs from failing containers into a single report. No more juggling `describe` and `logs` separately
-- **Query, manage, and take action** — list pods, read logs, inspect configs, scale deployments, restart workloads, apply manifests, and delete resources — all within the conversation, with your approval for destructive operations
-- **Autonomous deploy loops** — apply manifests, poll with `wait_for_ready` until pods are healthy, and iterate on failures — all without manual intervention
-- **Generate deployment manifests** — scaffold production-ready Kustomize manifests (ServiceAccount, RBAC, Deployment, Service) and apply them to the cluster in one step
-- **Detect config drift** — export live resources as YAML with `get_resource_yaml` and compare against local manifests
-- **Work with any MCP client** — supports Claude Code, Codex CLI, Gemini CLI, Opencode, and any client that speaks stdio, HTTP, or SSE
+*Less kubectl. More done.*
 
-## Prerequisites
+## Why This Exists
 
-- **Python 3.10+**
-- **Poetry**, **uv**, or **pip** (for dependency management)
-- **kubectl access configured** — the server reads your `~/.kube/config` automatically
+AI assistants today can suggest `kubectl` commands. But actually operating a cluster still means switching contexts, copy-pasting commands, manually debugging failures, and repeatedly checking logs and events. That creates a slow human-in-the-loop cycle.
 
-### Kubeconfig setup
-
-The server uses your existing kubeconfig (`~/.kube/config`) to connect to the cluster. Make sure you can run `kubectl` commands before using this server:
+k8s-mcp closes this gap by giving AI agents **task-complete tools** instead of low-level primitives. Instead of chaining:
 
 ```bash
-# Verify your cluster connection
-kubectl auth whoami
-
-# Verify access to your namespace
-kubectl get all -n <your-namespace>
+kubectl get pod
+kubectl describe pod
+kubectl logs
 ```
 
-The server inherits whatever permissions your kubeconfig user has. No additional credentials are needed.
+agents can call tools like `diagnose_pod()` or `wait_for_ready()` — and get structured results in one shot.
 
-> **Note:** Some operations (e.g., `list_namespaces`, `list_nodes`) require cluster-wide permissions that your user may not have. If a request fails with a `403 Forbidden` error, ask your cluster admin to grant the necessary RBAC roles.
+### What makes it different
 
-## Installation
+k8s-mcp is designed around **workflows**, not raw resource access — optimized for:
+
+- **AI agent execution loops** — deploy, observe, diagnose, retry, validate
+- **Lower token usage** — structured outputs instead of long shell transcripts
+- **Beginner-friendly operations** — less manual command chaining
+- **Faster iteration** — fewer moving pieces between "please deploy this" and a working result
+
+### Key capabilities
+
+- **Faster and lighter than shell tools** — native MCP tools return structured data directly to the AI, avoiding shell spawning, CLI output parsing, and large text streaming
+- **Diagnose issues in one shot** — `diagnose_pod` combines status, conditions, events, and failing-container logs into a single report
+- **Autonomous deploy loops** — apply manifests, wait for readiness, detect failures, and iterate without manual back-and-forth
+- **Generate deployment manifests** — create a working Kubernetes starting point automatically instead of writing YAML from scratch
+- **Query and take action** — list pods, read logs, inspect configs, scale deployments, restart workloads, apply manifests, and delete resources from the conversation
+- **Detect config drift** — export live resources as YAML and compare against local manifests
+- **Secure by Design** — reuses your `~/.kube/config` and your organization's existing auth flow (SSO, OIDC, certificate). Never stores or manages credentials
+- **Work with any MCP client** — supports stdio, HTTP, and SSE transports
+
+### How it compares
+
+Some Kubernetes MCP servers focus on broad resource-level API access. k8s-mcp focuses on **workflow-level tools designed for AI agents**.
+
+| | k8s-mcp | Traditional MCP servers |
+|---|---|---|
+| **Focus** | Workflow-level tools | Raw resource APIs |
+| **Usability** | Beginner-friendly | Kubernetes expertise required |
+| **Outputs** | Summarized, structured | Raw API responses |
+| **Agent efficiency** | High — fewer calls, lower token usage | Requires more reasoning and chaining |
+
+## Who Is This For
+
+- **AI engineers** building agent workflows that interact with Kubernetes
+- **Researchers** deploying models on Kubernetes without deep k8s expertise
+- **Developers** who want to automate cluster operations from their IDE
+- **Teams** experimenting with AI-driven DevOps
+
+If you want broad, low-level Kubernetes API access, there are other MCP servers better suited for that. If you want an agent that can actually **operate** a cluster with less manual overhead, this project is for you.
+
+## Quick Start
+
+### 1. Install
 
 ```bash
 git clone git@github.com:jingyanjiang/k8s-mcp.git
 cd k8s-mcp
-```
-
-### Option 1: pipx (recommended)
-
-Install globally with an isolated environment — no virtualenv activation needed:
-
-```bash
 pipx install .
 ```
 
 This puts `k8s-mcp` on your PATH and works from any directory.
 
-### Option 2: uv tool
+You can also use `uv tool install .` or `pip install .`. For development, use `poetry install`.
+
+### 2. Verify your Kubernetes access
+
+k8s-mcp reads your existing `~/.kube/config`. Before using it, verify:
 
 ```bash
-uv tool install .
+kubectl auth whoami
+kubectl get all -n <your-namespace>
 ```
 
-### Option 3: Poetry (development)
+The server inherits whatever permissions your kubeconfig user has. No additional credentials are needed.
 
-```bash
-poetry install
-```
+> **Note:** Some operations (e.g., `list_namespaces`, `list_nodes`) require cluster-wide permissions. If a request fails with `403 Forbidden`, ask your cluster admin for the necessary RBAC roles.
 
-Use `poetry run k8s-mcp` to run, or set `cwd` in your MCP client config.
+### 3. Add to your MCP client
 
-### Option 4: pip
-
-```bash
-pip install .
-```
-
-## Configuration
-
-### Claude Code / Claude Desktop
+#### Claude Code / Claude Desktop
 
 Add to `.mcp.json` (project-level) or `~/.claude.json` (global):
 
@@ -92,9 +107,7 @@ Add to `.mcp.json` (project-level) or `~/.claude.json` (global):
 }
 ```
 
-> **Note:** If your MCP client can't find `k8s-mcp` on PATH, use the absolute path instead for the `command` value (run `which k8s-mcp` to find it).
-
-### OpenAI Codex CLI
+#### OpenAI Codex CLI
 
 Add to `~/.codex/config.toml` (user-level) or `.codex/config.toml` (project-level):
 
@@ -104,7 +117,7 @@ command = "k8s-mcp"
 args = ["--transport", "stdio"]
 ```
 
-### Gemini CLI
+#### Gemini CLI
 
 Add to `~/.gemini/settings.json` (user-level) or `.gemini/settings.json` (project-level):
 
@@ -119,7 +132,7 @@ Add to `~/.gemini/settings.json` (user-level) or `.gemini/settings.json` (projec
 }
 ```
 
-### Opencode
+#### Opencode
 
 Add to `opencode.json` in your project root:
 
@@ -134,7 +147,9 @@ Add to `opencode.json` in your project root:
 }
 ```
 
-For all stdio configurations above, the server starts automatically when your MCP client connects — no manual commands needed.
+> If your MCP client can't find `k8s-mcp` on PATH, use the absolute path instead (run `which k8s-mcp` to find it).
+
+The server starts automatically when your MCP client connects — no manual commands needed.
 
 <details>
 <summary><strong>Using Poetry instead of a global install?</strong></summary>
@@ -143,7 +158,8 @@ Replace `"command": "k8s-mcp"` with `"command": "poetry"` and set args to `["run
 
 </details>
 
-### Other MCP clients
+<details>
+<summary><strong>Other transport modes</strong></summary>
 
 The server supports three transport modes:
 
@@ -165,22 +181,81 @@ export K8S_MCP_HOST=0.0.0.0   # default: localhost
 export K8S_MCP_PORT=8000       # default: 8000
 ```
 
+</details>
+
+### 4. Try it out
+
+```text
+Please check the status of my namespace: <namespace>
+```
+
+```text
+Please deploy the app in this repo to my k8s cluster. Make a plan first, then implement it.
+```
+
+```text
+My pods in namespace X keep crashing. Can you figure out what's wrong?
+```
+
+## Sample Use Cases
+
+### Check cluster status
+
+> *"Please check the status of my namespace: xxxxx"*
+
+The assistant will list pods, deployments, services, and events in the namespace, surfacing any issues it finds.
+
+![Sample usage of k8s-mcp](images/sample_usage_k8s_mcp.jpg)
+
+### Deploy an application
+
+> *"Please deploy the app/server in this repo to a k8s cluster for me. Make a plan first, then implement it."*
+
+The agent will:
+1. Analyze the repo structure
+2. Confirm the target cluster, namespace, image registry, and tag
+3. Generate Kustomize manifests
+4. Apply the deployment
+5. Wait for readiness and return structured health results
+
+### Diagnose a failing workload
+
+> *"My pods in namespace X keep crashing. Can you figure out what's wrong?"*
+
+The agent will inspect pod status, conditions, events, and container logs — then return a structured explanation with suggested fixes. No more manually running `describe` and `logs` in a loop.
+
 ## Tools
+
+### Signature tools
+
+These best represent the project's workflow-oriented design:
+
+| Tool | Description |
+|------|-------------|
+| `diagnose_pod` | One-shot diagnostics — combines status, conditions, events, and failing-container logs |
+| `wait_for_ready` | Poll a pod or deployment until ready or timeout (enables autonomous deploy loops) |
+| `apply_manifest` | Apply YAML manifests (create or update, supports multi-document) |
+| `apply_kustomize` | Render and apply a Kustomize directory (equivalent to `kubectl apply -k`) |
+| `get_resource_yaml` | Export a live resource as clean YAML (for config drift detection) |
+| `generate_deploy_manifests` | Generate Kubernetes manifests for deploying k8s-mcp itself to a cluster |
+
+<details>
+<summary><strong>Full tool reference</strong></summary>
 
 All operations are exposed as MCP tools — you interact with them conversationally through your AI assistant.
 
-### Cluster Context
+#### Cluster Context
 | Tool | Description |
 |------|-------------|
 | `get_contexts` | List available kubeconfig contexts |
 | `get_current_context` | Show the active context, cluster, and user |
 
-### Namespaces
+#### Namespaces
 | Tool | Description |
 |------|-------------|
 | `list_namespaces` | List all namespaces in the cluster |
 
-### Pods
+#### Pods
 | Tool | Description |
 |------|-------------|
 | `list_pods` | List pods (by namespace, label, or all namespaces) |
@@ -190,7 +265,7 @@ All operations are exposed as MCP tools — you interact with them conversationa
 | `diagnose_pod` | One-shot diagnostics — combines status, conditions, events, and logs from failing containers |
 | `exec_command` | Execute a command inside a running container (e.g., `curl`, `env`, `nslookup`) |
 
-### Deployments
+#### Deployments
 | Tool | Description |
 |------|-------------|
 | `list_deployments` | List deployments (by namespace, label, or all namespaces) |
@@ -199,31 +274,31 @@ All operations are exposed as MCP tools — you interact with them conversationa
 | `restart_deployment` | Rolling restart (equivalent to `kubectl rollout restart`) |
 | `get_rollout_status` | Check if a rollout is complete, in progress, or stuck |
 
-### Services
+#### Services
 | Tool | Description |
 |------|-------------|
 | `list_services` | List services (by namespace, label, or all namespaces) |
 | `get_service` | Get detailed service information |
 
-### ConfigMaps
+#### ConfigMaps
 | Tool | Description |
 |------|-------------|
 | `list_configmaps` | List ConfigMaps (by namespace, label, or all namespaces) |
 | `get_configmap` | Get a ConfigMap's metadata and data contents |
 
-### Secrets
+#### Secrets
 | Tool | Description |
 |------|-------------|
 | `list_secrets` | List Secrets with type and key counts |
 | `get_secret` | Get Secret metadata and key names; optionally decode values with masking |
 
-### ServiceAccounts
+#### ServiceAccounts
 | Tool | Description |
 |------|-------------|
 | `list_service_accounts` | List ServiceAccounts (by namespace, label, or all namespaces) |
 | `get_service_account` | Get ServiceAccount details including secrets and automount config |
 
-### RBAC (Roles & Bindings)
+#### RBAC (Roles & Bindings)
 | Tool | Description |
 |------|-------------|
 | `list_roles` | List Roles (by namespace or all); optionally include ClusterRoles |
@@ -231,29 +306,29 @@ All operations are exposed as MCP tools — you interact with them conversationa
 | `list_role_bindings` | List RoleBindings (by namespace or all); optionally include ClusterRoleBindings |
 | `get_role_binding` | Get RoleBinding or ClusterRoleBinding details including subjects and role reference |
 
-### Nodes
+#### Nodes
 | Tool | Description |
 |------|-------------|
 | `list_nodes` | List cluster nodes with status and roles |
 | `get_node` | Get detailed node information |
 
-### Events
+#### Events
 | Tool | Description |
 |------|-------------|
 | `list_events` | List events, optionally filtered by resource name |
 
-### Jobs
+#### Jobs
 | Tool | Description |
 |------|-------------|
 | `list_jobs` | List jobs with completion status and duration |
 
-### Ingresses
+#### Ingresses
 | Tool | Description |
 |------|-------------|
 | `list_ingresses` | List Ingresses with hosts, class, and TLS info |
 | `get_ingress` | Get detailed Ingress information including routing rules |
 
-### Generic Operations
+#### Generic Operations
 | Tool | Description |
 |------|-------------|
 | `apply_manifest` | Apply YAML manifests (create or update, supports multi-document) |
@@ -262,37 +337,41 @@ All operations are exposed as MCP tools — you interact with them conversationa
 | `describe_resource` | Describe any resource — combines spec/status with related events (like `kubectl describe`) |
 | `get_resource_yaml` | Export a live resource as clean YAML (for config drift detection) |
 
-### Resource Metrics
+#### Resource Metrics
 | Tool | Description |
 |------|-------------|
 | `top_pods` | Show CPU/memory usage per pod (requires metrics-server) |
 | `top_nodes` | Show CPU/memory usage per node with capacity percentages |
 
-### Readiness
+#### Readiness
 | Tool | Description |
 |------|-------------|
 | `wait_for_ready` | Poll a pod or deployment until ready or timeout (enables autonomous deploy loops) |
 
-### Deployment Generation
+#### Deployment Generation
 | Tool | Description |
 |------|-------------|
 | `generate_deploy_manifests` | Generate Kubernetes manifests for deploying k8s-mcp itself to a cluster |
 
-## Sample Use Cases
+</details>
 
-### Check cluster status
-Open a new conversation as follows:
-> *"Please check the status of my namespace: xxxxx"*
+## Safety
 
-The assistant will list pods, deployments, services, and events in the namespace, surfacing any issues it finds.
+k8s-mcp is designed with practical safeguards:
 
-![Sample usage of k8s-mcp](images/sample_usage_k8s_mcp.jpg)
+- **Namespace scoping** — agents confirm the target namespace before taking action
+- **Destructive action confirmation** — delete, scale-to-zero, and restart operations require explicit user approval
+- **Read-only queries by default** — most tools are non-destructive
 
-### Deploy an application
-Open a new conversation as follows:
-> *"Please deploy the app/server in this repo to a k8s cluster for me. Make a plan first, then implement it."*
+Always review actions before applying changes in production environments.
 
-The assistant will plan the deployment end-to-end — confirming the target cluster, namespace, image registry, tag, and image pull secret — then generate the manifests and apply them to the cluster for you.
+## Project Status
+
+This project is actively maintained and evolving. Feedback, suggestions, and contributions are welcome.
+
+## Contributing
+
+Pull requests and ideas are welcome. If you're experimenting with AI-driven DevOps, I'd love to hear what workflows would be useful.
 
 ## License
 
