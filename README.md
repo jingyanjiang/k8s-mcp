@@ -2,7 +2,7 @@
 
 AI-native Kubernetes operations for agents and fast-moving teams.
 
-k8s-mcp is a lightweight [MCP](https://modelcontextprotocol.io/) server that lets AI assistants deploy, inspect, and operate Kubernetes workloads through high-level workflow tools instead of raw kubectl commands.
+k8s-mcp is a lightweight [MCP](https://modelcontextprotocol.io/) server that lets AI assistants deploy, inspect, and operate Kubernetes workloads through high-level workflow tools instead of raw kubectl commands — with structured outputs that significantly reduce token usage.
 
 Works with **Claude Code** · **Codex CLI** · **Gemini CLI** · **Opencode** · and any MCP-compatible agent.
 
