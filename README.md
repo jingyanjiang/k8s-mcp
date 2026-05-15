@@ -10,14 +10,9 @@ Works with **Claude Code** · **Codex CLI** · **Gemini CLI** · **Opencode** ·
 
 ## Demo
 
-<!--
-  To embed your video: edit this file on github.com (pencil icon),
-  drag-and-drop your .mp4/.mov/.webm (max 100 MB) into the area below,
-  then delete this comment. GitHub will replace it with a video URL
-  that renders as an inline player.
--->
+<!-- Replace VIDEO_ID below with your YouTube video ID (the part after v= or youtu.be/). -->
 
-_Video coming soon._
+[![k8s-mcp demo](https://img.youtube.com/vi/R49cLxoOIk0/maxresdefault.jpg)](https://youtu.be/R49cLxoOIk0)
 
 ## Why This Exists
 
