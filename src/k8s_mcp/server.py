@@ -613,7 +613,9 @@ def get_rollout_status(name: str, namespace: str = "default") -> str:
     except ApiException as e:
         return f"Error getting deployment '{name}': {e.reason} (HTTP {e.status})"
 
-    spec_replicas = dep.spec.replicas or 1
+    # spec.replicas is None when unset (controller defaults to 1) and 0 when
+    # explicitly scaled to zero. `or 1` collapses both cases — keep them distinct.
+    spec_replicas = 1 if dep.spec.replicas is None else dep.spec.replicas
     status = dep.status
     updated = status.updated_replicas or 0
     ready = status.ready_replicas or 0
@@ -960,19 +962,25 @@ def list_roles(
             if all_namespaces
             else rbac.list_namespaced_role(namespace, **kw).items
         )
-        show_ns = all_namespaces or include_cluster_roles
-        header = f"{'NAMESPACE':<20} " if show_ns else ""
-        lines = [f"{header}{'NAME':<50} AGE"]
-        for r in roles:
-            prefix = f"{r.metadata.namespace:<20} " if show_ns else ""
-            lines.append(f"{prefix}{r.metadata.name:<50} {_age(r.metadata.creation_timestamp)}")
-        if include_cluster_roles:
+    except ApiException as e:
+        return f"Error listing roles: {e.reason} (HTTP {e.status})"
+
+    show_ns = all_namespaces or include_cluster_roles
+    header = f"{'NAMESPACE':<20} " if show_ns else ""
+    lines = [f"{header}{'NAME':<50} AGE"]
+    for r in roles:
+        prefix = f"{r.metadata.namespace:<20} " if show_ns else ""
+        lines.append(f"{prefix}{r.metadata.name:<50} {_age(r.metadata.creation_timestamp)}")
+
+    if include_cluster_roles:
+        try:
             cluster_roles = rbac.list_cluster_role(**kw).items
             for cr in cluster_roles:
                 lines.append(f"{'<cluster>':<20} {cr.metadata.name:<50} {_age(cr.metadata.creation_timestamp)}")
-        return "\n".join(lines)
-    except ApiException as e:
-        return f"Error listing roles: {e.reason} (HTTP {e.status})"
+        except ApiException as e:
+            lines.append(f"\n# ClusterRoles not listed: {e.reason} (HTTP {e.status})")
+
+    return "\n".join(lines)
 
 
 @mcp.tool()
@@ -1040,17 +1048,24 @@ def list_role_bindings(
             if all_namespaces
             else rbac.list_namespaced_role_binding(namespace, **kw).items
         )
-        show_ns = all_namespaces or include_cluster_role_bindings
-        header = f"{'NAMESPACE':<20} " if show_ns else ""
-        lines = [f"{header}{'NAME':<40} {'ROLE-REF':<40} AGE"]
-        for rb in bindings:
-            role_ref = f"{rb.role_ref.kind}/{rb.role_ref.name}"
-            prefix = f"{rb.metadata.namespace:<20} " if show_ns else ""
-            lines.append(
-                f"{prefix}{rb.metadata.name:<40} {role_ref:<40} "
-                f"{_age(rb.metadata.creation_timestamp)}"
-            )
-        if include_cluster_role_bindings:
+    except ApiException as e:
+        return f"Error listing role bindings: {e.reason} (HTTP {e.status})"
+
+    show_ns = all_namespaces or include_cluster_role_bindings
+    header = f"{'NAMESPACE':<20} " if show_ns else ""
+    lines = [f"{header}{'NAME':<40} {'ROLE-REF':<40} AGE"]
+    for rb in bindings:
+        role_ref = f"{rb.role_ref.kind}/{rb.role_ref.name}"
+        prefix = f"{rb.metadata.namespace:<20} " if show_ns else ""
+        lines.append(
+            f"{prefix}{rb.metadata.name:<40} {role_ref:<40} "
+            f"{_age(rb.metadata.creation_timestamp)}"
+        )
+
+    if include_cluster_role_bindings:
+        # ClusterRoleBindings need cluster-scoped read; fall back gracefully
+        # when the caller can list namespaced RBs but not cluster-wide ones.
+        try:
             crbs = rbac.list_cluster_role_binding(**kw).items
             for crb in crbs:
                 role_ref = f"{crb.role_ref.kind}/{crb.role_ref.name}"
@@ -1058,9 +1073,12 @@ def list_role_bindings(
                     f"{'<cluster>':<20} {crb.metadata.name:<40} {role_ref:<40} "
                     f"{_age(crb.metadata.creation_timestamp)}"
                 )
-        return "\n".join(lines)
-    except ApiException as e:
-        return f"Error listing role bindings: {e.reason} (HTTP {e.status})"
+        except ApiException as e:
+            lines.append(
+                f"\n# ClusterRoleBindings not listed: {e.reason} (HTTP {e.status})"
+            )
+
+    return "\n".join(lines)
 
 
 @mcp.tool()
@@ -1758,7 +1776,7 @@ def _wait_deployment(name: str, namespace: str, timeout: int, interval: int) -> 
             dep = apps.read_namespaced_deployment(name, namespace)
         except ApiException as e:
             return f"Error checking deployment '{name}': {e.reason} (HTTP {e.status})"
-        desired = dep.spec.replicas or 1
+        desired = 1 if dep.spec.replicas is None else dep.spec.replicas
         updated = dep.status.updated_replicas or 0
         ready = dep.status.ready_replicas or 0
         available = dep.status.available_replicas or 0
