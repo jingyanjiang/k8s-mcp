@@ -8,6 +8,17 @@ Works with **Claude Code** · **Codex CLI** · **Gemini CLI** · **Opencode** ·
 
 *Less kubectl. More done.*
 
+## Demo
+
+<!--
+  To embed your video: edit this file on github.com (pencil icon),
+  drag-and-drop your .mp4/.mov/.webm (max 100 MB) into the area below,
+  then delete this comment. GitHub will replace it with a video URL
+  that renders as an inline player.
+-->
+
+_Video coming soon._
+
 ## Why This Exists
 
 AI assistants today can suggest `kubectl` commands. But actually operating a cluster still means switching contexts, copy-pasting commands, manually debugging failures, and repeatedly checking logs and events. That creates a slow human-in-the-loop cycle.
