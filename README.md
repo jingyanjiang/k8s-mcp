@@ -183,7 +183,21 @@ export K8S_MCP_PORT=8000       # default: 8000
 
 </details>
 
-### 4. Try it out
+### 4. (Optional) Install the `k8s-ops` skill for Claude Code
+
+For Claude Code users, this repo ships an opinionated workflow skill at [skills/k8s-ops/](skills/k8s-ops/). It encodes multi-step playbooks for **deploy**, **debug**, **rollout**, and **audit** on top of the raw MCP tools — useful when you want the agent to follow a tested sequence (e.g., debug decision tree, pre-flight rollout checks) rather than improvise.
+
+Install with a symlink so updates from `git pull` flow through automatically:
+
+```bash
+ln -s "$(pwd)/skills/k8s-ops" ~/.claude/skills/k8s-ops
+```
+
+Then in Claude Code, invoke it with `/k8s-ops` (e.g., `/k8s-ops debug`, `/k8s-ops audit NAMESPACE=foo`). The skill is also model-invoked — it activates automatically when you ask the agent to deploy, diagnose, restart, or audit Kubernetes workloads.
+
+> Skip this step if you're using a different MCP client. The MCP server itself works without it.
+
+### 5. Try it out
 
 ```text
 Please check the status of my namespace: <namespace>
